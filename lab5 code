@@ -1,0 +1,1200 @@
+#Study Group: Nicholas ALonso, Herve Allah, Nicholas Esposito and Cisse Sergine
+attach(acs2017_ny)
+use_varb <- (AGE >= 25) & (AGE <= 55) & (LABFORCE == 2) & (WKSWORK2 > 4) &
+  (UHRSWORK >= 35) & (Hispanic == 1) & (female == 1) & ((educ_college == 1) | (educ_advdeg == 1))
+dat_use <- subset(acs2017_ny,use_varb) 
+detach()
+attach(dat_use)
+summary(dat_use)
+model_temp <- lm(INCWAGE ~ educ_hs )
+summary(model_temp)
+# We cannot use educ_hs because we are using a subset of educ_college, thus excluding those that have just
+# a high school education because they do not have a bachelors. We can see this reviewing the summary of the
+# subset, in the educ-hs, there are only values
+# of 0. In other words, the subset excludes those that do not have a bachelors. Logically, people that
+#  so they will come up as NA in the regression because the subset has already excluded them.
+model_temp6 <- lm(INCWAGE ~ educ_college + educ_advdeg + has_PvtHealthIns)
+summary(model_temp6)
+# When we run a regression that has both a bachelors and an advanced degree, it causes one of them to
+# be canceled out, in this case it was educ_advance that showed up as NA.  The interpretation of educ_college 
+# in the subset is that it is only including two education levels, it is only adding people that
+# have a bacholer's given that they have a masters.
+# Coefficients: (1 not defined because of singularities)
+# The other dummy variable, has private health insurance, seems to be working sensibly, the coefficient 
+# is positive 29123.1, indicating that someone with private health insurance is likely to be making 
+# a wage of that much higher.
+
+detach()
+
+#The following regressions, we will be using a subset of Dominicans.
+attach(acs2017_ny)
+use_varb <-  (in_NYC == 1) & (AGE >= 20) & (AGE <= 70) & (LABFORCE == 2) & (WKSWORK2 > 4)  & (UHRSWORK >= 35) & (Hisp_DomR == 1) 
+dat_use <- subset(acs2017_ny,use_varb) 
+detach()  
+attach(dat_use)
+model_temp1 <- lm(INCWAGE ~ AGE + I(AGE^2) + educ_hs + educ_somecoll + educ_college + educ_advdeg)
+summary(model_temp1)
+suppressMessages(require(AER))
+NNobs <- length(INCWAGE)
+set.seed(12345) 
+graph_obs <- (runif(NNobs) < 0.5) 
+dat_graph <-subset(dat_use,graph_obs)  
+plot(INCWAGE ~ jitter(AGE, factor = 2), pch = 16, col = rgb(0.5, 0.5, 0.5, alpha = 0.2), ylim = c(0,300000), data = dat_graph)
+to_be_predicted2 <- data.frame(AGE = 20:70, educ_hs = 1, educ_somecoll = 1, educ_college = 1, educ_advdeg = 1)
+to_be_predicted2$yhat <- predict(model_temp1, newdata = to_be_predicted2)
+lines(yhat ~ AGE, data = to_be_predicted2, col = "brown")
+summary(to_be_predicted2$yhat)
+to_be_predicted2 <- data.frame(AGE = 20:70, educ_hs = 1, educ_somecoll = 1, educ_college = 0, educ_advdeg = 0)
+to_be_predicted2$yhat <- predict(model_temp1, newdata = to_be_predicted2)
+lines(yhat ~ AGE, data = to_be_predicted2, col = "purple")
+summary(to_be_predicted2$yhat)
+detach()
+detach()
+detach()
+# We can see in this graph that unlike the previous regressions, it does not go in a straight line diagonally 
+# upward. We can note there is a curve in the graph, increase from the 20s-30s range, peaking at the 40s-50s
+# and decreasing around the 60s-70s range. There is not a big increase or dip in the graph because maybe
+# you are educated,  your income will maintain high.
+# The variables in the non-linear regression are AGE, AGE^2 and all the educational variables except educ_nohs.
+# Unlike previous regressions, we see the graph is curved, which is due to the AGE^2. We can find the peak
+# of predicted wages using the summary of to_be_predicted2$yhat, where the maximum is the highest peak along 
+# the curve of the brown line in this case is 139364. While we see the different interactions between
+# people that have a masters, bacholers, some college and high school education (the brown line) and
+# people with a some college and a bacholers.
+
+# Next we will try two more regressions with same subset, one with AGE^3 and another with AGE^3 and AGE^4.
+model_temp2 <- lm(INCWAGE ~ AGE + I(AGE^2) + I(AGE^3) + educ_hs + educ_somecoll + educ_college + educ_advdeg)
+summary(model_temp2)
+suppressMessages(require(AER))
+NNobs <- length(INCWAGE)
+set.seed(12345) 
+graph_obs <- (runif(NNobs) < 0.5) 
+dat_graph <-subset(dat_use,graph_obs)  
+plot(INCWAGE ~ jitter(AGE, factor = 2), pch = 16, col = rgb(0.5, 0.5, 0.5, alpha = 0.2), ylim = c(0,300000), data = dat_graph)
+to_be_predicted2 <- data.frame(AGE = 20:70, educ_hs = 1, educ_somecoll = 1, educ_college = 1, educ_advdeg = 1)
+to_be_predicted2$yhat <- predict(model_temp2, newdata = to_be_predicted2)
+lines(yhat ~ AGE, data = to_be_predicted2, col = "brown")
+detach()
+detach()
+detach()
+
+# When adding a higher order polynomial on age, the line change its dimensions slightly. In the regression 
+# with just AGE^2, we see that around the ages after 50, the wages decrease,
+# as we can note in the graphs. However, in the regression including AGE^3, after the 50s year old range
+# the graph does decrease, flattening out and almost inclining in the 70s range. 
+# Additionally, at a 90% confidence, all of the variables in the regression demonstrate significance
+# at a level of significance of 0.1 except for age^3, which has a p-value above 0.1. 
+
+model_temp3 <- lm((INCWAGE ~ AGE + I(AGE^2) + I(AGE^3) + I(AGE^4) + educ_hs + educ_somecoll + educ_college + educ_advdeg ) )
+summary(model_temp3)
+suppressMessages(require(AER))
+NNobs <- length(INCWAGE)
+set.seed(12345) 
+graph_obs <- (runif(NNobs) < 0.5) 
+dat_graph <-subset(dat_use,graph_obs)  
+plot(INCWAGE ~ jitter(AGE, factor = 2), pch = 16, col = rgb(0.5, 0.5, 0.5, alpha = 0.2), ylim = c(0,300000), data = dat_graph)
+to_be_predicted2 <- data.frame(AGE = 20:70, educ_hs = 1, educ_somecoll = 1, educ_college = 1, educ_advdeg = 1)
+to_be_predicted2$yhat <- predict(model_temp3, newdata = to_be_predicted2)
+lines(yhat ~ AGE, data = to_be_predicted2, col = "brown")
+detach()
+detach()
+detach()
+
+# Indeed, even when adding the age^3 and age^4, the higher order polynomials did change the slope of
+# the predicted line. One interesting point to note is when looking at the summaries of the regressions, 
+# the age, age^2, age^3 and age^4 are not jointly significant, due to p-values that are
+# greater than the level of significance of 0.1, thus we fail to reject the null hypothesis the polynomials
+# of AGE shows no relationship between INCWAGE. The lack of significance is likely due to high polynomials 
+# because in the first regression and second regressions when using just AGE and AGE^2, 
+# and AGE, AGE^2 and AGE^3, the results were significance and did show a relationship.
+# Therefore, we would use just age^2 more frequently, possibly age^3, but not age^4 because the variables are
+# less likely to be significant. The patterns of the graphs were similar from the range of the 20s
+# to mid 40s, the wages would increase. However, depending on the polynomial added to the regression, 
+# the end of the line would either decrease, flattened or increase. The reason for the interaction
+# different increases and decreases of the plotted lines in because the coefficients of the polynomials
+# are positive, negative, positive, negative for the first four coefficients of the regression, thus 
+# shifting the dimensions of the graph.
+
+model_temp4 <- lm(INCWAGE ~ I(log(AGE)) + I(log(AGE^2)) + I(log(AGE^3)) )
+summary(model_temp4)
+# When using polynomials in log(AGE), the summary of the regression tells us I(log(AGE^2)) + I(log(AGE^3))
+# appear as NA, therefore deeming them useless. It is better to use I(^2), than to apply a log function.
+# to AGE. Funny enough, the adjusted r squared is negative, something I have never seen before,
+# so we definitely do not want to use log AGE.
+
+model_temp7 <- lm(INCWAGE ~ AGE + educ_hs+ I(educ_hs^2) + educ_somecoll + educ_college + educ_advdeg)
+summary(model_temp7)
+# We do not use polynomial terms on a dummy variable, such as educ_hs because the they will appear as NA
+# in the summary. In this case, we use the polynomial for the educ_hs^2, however in the summary it is
+# the coefficient, std.error, t-stat and p-value are all NAs.
+
+regression <- lm(INCWAGE ~ AGE + I(AGE^2) + educ_hs + educ_somecoll + educ_college + educ_advdeg)
+summary(regression)
+suppressMessages(require(AER))
+NNobs <- length(INCWAGE)
+set.seed(12345) 
+graph_obs <- (runif(NNobs) < 0.5) 
+dat_graph <-subset(dat_use,graph_obs)  
+plot(INCWAGE ~ jitter(AGE, factor = 2), pch = 16, col = rgb(0.5, 0.5, 0.5, alpha = 0.2), ylim = c(0,300000), data = dat_graph)
+to_be_predicted2 <- data.frame(AGE = 20:70, educ_hs = 1, educ_somecoll = 1, educ_college = 1, educ_advdeg = 1)
+to_be_predicted2$yhat <- predict(regression, newdata = to_be_predicted2)
+lines(yhat ~ AGE, data = to_be_predicted2, col = "brown")
+summary(to_be_predicted2$yhat)
+# The predicted wages for this model are:
+#  Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
+# 125509  131378  135640  134571  138424  139364 
+# In this case, the predicated wage seems reasonable because, although the subset is made of a minority group,
+# we are including people that are college educated with a bachelors or a masters, thus the
+# income wages is much higher.
+to_be_predicted2 <- data.frame(AGE = 20:70, educ_hs = 0, educ_somecoll = 0, educ_college = 0, educ_advdeg = 0)
+to_be_predicted2$yhat <- predict(regression, newdata = to_be_predicted2)
+lines(yhat ~ AGE, data = to_be_predicted2, col = "purple")
+summary(to_be_predicted2$yhat)
+exp(to_be_predicted2)
+# The predicted wages for this model are:
+# Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
+# 14208   20077   24339   23270   27124   28063 
+# In this case, the predicated wage seems reasonable because we are only counting Dominicans with
+# no high school education, thus the wages will be much lower compared to Dominicans that are educated.
+# We note the difference in these two different interactions and conclude that education has a positive
+# impact on income wages.
+
+regression2 <- lm(log1p(INCWAGE) ~ AGE + I(AGE^2) + educ_hs + educ_somecoll + educ_college + educ_advdeg)
+summary(regression2)
+suppressMessages(require(AER))
+NNobs <- length(log1p(INCWAGE))
+set.seed(12345) 
+graph_obs <- (runif(NNobs) < 0.5) 
+dat_graph <-subset(dat_use,graph_obs)  
+plot(INCWAGE ~ jitter(AGE, factor = 2), pch = 16, col = rgb(0.5, 0.5, 0.5, alpha = 0.2), ylim = c(0,30), data = dat_graph)
+to_be_predicted2 <- data.frame(AGE = 20:70, educ_hs = 1, educ_somecoll = 1, educ_college = 1, educ_advdeg = 1)
+to_be_predicted2$yhat <- predict(regression2, newdata = to_be_predicted2)
+lines(yhat ~ AGE, data = to_be_predicted2, col = "brown")
+summary(to_be_predicted2$yhat)
+exp(to_be_predicted2)
+
+# When using log as the on the dependent variable income wage, the predicted values become much lower, as well as the 
+# line plotted on the graph. In other words, the Log expression expresses the same values within a smaller range 
+# compared to the original values. when looking at the summary of the predicted values, we only see a range from 
+# about 11-13. However, when using the function exp, it computes the exponential function, so 
+# we see the real values of yhat, which are extremely similar, if not
+# the exact same as the previous regression. They are listed from values 1 to 51, but the actually represent people
+# ages 20- 70. While the column on the right side represents the wages in dollar terms. Nonetheless, the log function 
+# maintains the logic that log operates using the same values on a smaller scale, while exp can make the log easier 
+# to interpret.
+
+regression4 <-  lm(INCWAGE ~ AGE + I(AGE^2) + female + I(female*AGE) + I(female*(AGE^2)) + has_PvtHealthIns )
+summary(regression4)
+anova(model_temp1,regression4)
+suppressMessages(require(AER))
+NNobs <- length(INCWAGE)
+set.seed(12345) 
+graph_obs <- (runif(NNobs) < 0.5) 
+dat_graph <-subset(dat_use,graph_obs)  
+plot(INCWAGE ~ jitter(AGE, factor = 2), pch = 16, col = rgb(0.5, 0.5, 0.5, alpha = 0.2), ylim = c(0,40000), data = dat_graph)
+to_be_predicted2 <- data.frame(AGE = 20:70, female = 0, has_PvtHealthIns = 0)
+to_be_predicted2$yhat <- predict(regression4, newdata = to_be_predicted2)
+lines(yhat ~ AGE, data = to_be_predicted2, col = "brown")
+summary(to_be_predicted2$yhat)
+to_be_predicted2 <- data.frame(AGE = 20:70, female = 1, has_PvtHealthIns = 0)
+to_be_predicted2$yhat <- predict(regression4, newdata = to_be_predicted2)
+lines(yhat ~ AGE, data = to_be_predicted2, col = "purple")
+summary(to_be_predicted2$yhat)
+# Male No Private Health Insurance
+# Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
+#17108   24649   29244   28077   32267   33283 
+# Female
+# Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
+# -790.6 18708.8 24956.4 22200.3 29019.5 30393.9
+# So, to see the different interactions, we run two different predicted lines. Male with no private health insurance
+# and female with no private health insurance. As we can see on the graph for females is lower than brown line for males, 
+# where we take a look at the predicted wages, where the peaks of the parabolas are 30393.9 and 33283
+# for female no insurance and male no insurance respectively.
+# do predicted lines twice!!!!
+# Different interactions...... is changing the predicted lines
+# The curve is more obvious, we can see that the second polynomial is also negative. 
+
+regression <- lm(INCWAGE ~ AGE + I(AGE^2) + educ_hs + educ_somecoll + educ_college + educ_advdeg)
+summary(regression)
+suppressMessages(require(AER))
+NNobs <- length(INCWAGE)
+set.seed(12345) 
+graph_obs <- (runif(NNobs) < 0.5) 
+dat_graph <-subset(dat_use,graph_obs)  
+plot(INCWAGE ~ jitter(AGE, factor = 2), pch = 16, col = rgb(0.5, 0.5, 0.5, alpha = 0.2), ylim = c(0,300000), data = dat_graph)
+to_be_predicted2 <- data.frame(AGE = 20:70, educ_hs = 1, educ_somecoll = 1, educ_college = 1, educ_advdeg = 1)
+to_be_predicted2$yhat <- predict(regression, newdata = to_be_predicted2)
+lines(yhat ~ AGE, data = to_be_predicted2, col = "brown")
+summary(to_be_predicted2$yhat)
+print(to_be_predicted2)
+to_be_predicted2 <- data.frame(AGE = 20:70, educ_hs = 1, educ_somecoll = 1, educ_college = 0, educ_advdeg = 0)
+to_be_predicted2$yhat <- predict(regression, newdata = to_be_predicted2)
+lines(yhat ~ AGE, data = to_be_predicted2, col = "purple")
+summary(to_be_predicted2$yhat)
+print(to_be_predicted2)
+# The other variables that we have been using are either the educational dummies or private health insurance
+# With the print function, it is similar to exp, except we it works without the log function, where it
+# prints the values as age goes up until you reach the middle then it goes down, which makes sense because 
+# when you getting into retirement territory your wages decrease.
+# the education variables do have expected patterns, there are relationships between the educational dummies and
+# income wage are all statistically significant at a level of significance of 0.001, demonstrating there is a
+# relationship between income wage and educational variables.
+# There is a casual link from the x variables to the y variable for the cases of education with respect to
+# income wages. For example, if you have a masters and compared yourself to someone that has not even a high 
+# school education, chances are you will be making a lot more money than them. However, the casual link is not
+# from income wage to education because you can still go to high school for free, you can
+# take out loans or you may have savings if you want to pursue higher education. So, you do need an education
+# to a higher wage, but you do not necessarily need a wage to have a higher education.
+
+#This particular bit of code was something we found from the rstudio community to graph the peak predicted wages.
+Poly_Model <- lm(INCWAGE ~ poly(AGE,3, raw=TRUE))
+summary(Poly_Model)
+plot(AGE, INCWAGE, col="green", ylim=c(0, 200000))
+# Add model
+AGE <- seq(min(AGE), max(AGE), length=1000)
+pred <- data.frame(AGE, INCWAGE = predict(Poly_Model, newdata = data.frame(AGE)))
+with(pred, lines(AGE, INCWAGE))
+# Vector of model coefficients
+cf <- coef(Poly_Model)
+# First derivative of my poly_model
+# This is the "raw" equation but we'll find its roots to get the locations of local maxima and minima.
+D1 <- cf[2] + 2*cf[3]*pred$AGE + 3*cf[4]*pred$AGE^2
+# Roots of first derivative (these are locations where first derivative (d WAGE/ d AGE) = 0).
+# Use quadratic formula to find roots (I honestly copied and pasted this formula, but I understand what it's doing)
+D1roots <- (-2*cf[3] + c(-1,1)*sqrt((2*cf[3])^2 - 4*3*cf[4]*cf[2]))/(2*3*cf[4])
+# Second derivative at the two roots. 
+D2atD1roots <-  2*cf[3] + 6*cf[4]*D1roots
+# Local maxima are where the second derivative is negative
+max_x <- D1roots[which(D2atD1roots < 0)]
+max_y <- cf %*% max_x^(0:3)
+# Plot local maxima
+points(max_x, max_y, pch=16, col="red")
+# Add values of Yield at local maxima
+text(max_x, max_y, label = round(max_y,2), adj=c(0.5,-1))
+
+# In this case, using poly is the same as using I(^3), however by using this we can code to find the
+# peak of the parabola and draw it on our graph. The peak of the parabola was found using 
+# the derivatives and the quadratic formula. In the case of our subgroup of Dominicans, the peak of
+# the wage line is 47179.26
+# The reason there are so many data points compared to our original model temp is because originally, we use
+# only 50% of the subset in previous regressions. In the case, by using the derivatives we can find the
+# peak of the parabola. Unfortunately, we have tried to replicate these commands using a different polynomial,
+# but were not able to code it properly, nonetheless it was an interesting way to graph it.
+
+
+
+#Console Output
+
+
+
+
+attach(acs2017_ny)
+> use_varb <- (AGE >= 25) & (AGE <= 55) & (LABFORCE == 2) & (WKSWORK2 > 4) &
++   (UHRSWORK >= 35) & (Hispanic == 1) & (female == 1) & ((educ_college == 1) | (educ_advdeg == 1))
+> dat_use <- subset(acs2017_ny,use_varb) 
+> detach()
+> attach(dat_use)
+> summary(dat_use)
+      AGE            female    educ_nohs    educ_hs  educ_somecoll  educ_college   
+ Min.   :25.00   Min.   :1   Min.   :0   Min.   :0   Min.   :0     Min.   :0.0000  
+ 1st Qu.:30.00   1st Qu.:1   1st Qu.:0   1st Qu.:0   1st Qu.:0     1st Qu.:0.0000  
+ Median :37.00   Median :1   Median :0   Median :0   Median :0     Median :1.0000  
+ Mean   :38.09   Mean   :1   Mean   :0   Mean   :0   Mean   :0     Mean   :0.6232  
+ 3rd Qu.:46.00   3rd Qu.:1   3rd Qu.:0   3rd Qu.:0   3rd Qu.:0     3rd Qu.:1.0000  
+ Max.   :55.00   Max.   :1   Max.   :0   Max.   :0   Max.   :0     Max.   :1.0000  
+                                                                                   
+  educ_advdeg                   SCHOOL                            EDUC    
+ Min.   :0.0000   N/A              :   0   4 years of college       :708  
+ 1st Qu.:0.0000   No, not in school:1037   5+ years of college      :428  
+ Median :0.0000   Yes, in school   :  99   N/A or no schooling      :  0  
+ Mean   :0.3768   Missing          :   0   Nursery school to grade 4:  0  
+ 3rd Qu.:1.0000                            Grade 5, 6, 7, or 8      :  0  
+ Max.   :1.0000                            Grade 9                  :  0  
+                                           (Other)                  :  0  
+                                            EDUCD    
+ Bachelor's degree                             :708  
+ Master's degree                               :338  
+ Professional degree beyond a bachelor's degree: 62  
+ Doctoral degree                               : 28  
+ N/A or no schooling                           :  0  
+ N/A                                           :  0  
+ (Other)                                       :  0  
+                                     DEGFIELD  
+ Business                                :275  
+ Education Administration and Teaching   :116  
+ Social Sciences                         :114  
+ Psychology                              :109  
+ Medical and Health Sciences and Services: 98  
+ Fine Arts                               : 63  
+ (Other)                                 :361  
+                                  DEGFIELDD  
+ Psychology                            : 95  
+ Business Management and Administration: 70  
+ Accounting                            : 65  
+ General Education                     : 56  
+ Nursing                               : 51  
+ Sociology                             : 47  
+ (Other)                               :752  
+                                    DEGFIELD2   
+ N/A                                     :1005  
+ Social Sciences                         :  23  
+ Business                                :  19  
+ Medical and Health Sciences and Services:  14  
+ Communications                          :  11  
+ Linguistics and Foreign Languages       :  11  
+ (Other)                                 :  53  
+                                                           DEGFIELD2D        PUMA     
+ N/A                                                            :1005   Min.   : 100  
+ French, German, Latin and Other Common Foreign Language Studies:   9   1st Qu.:3206  
+ Sociology                                                      :   7   Median :3709  
+ Economics                                                      :   6   Mean   :3484  
+ Marketing and Marketing Research                               :   6   3rd Qu.:4006  
+ Communications                                                 :   5   Max.   :4114  
+ (Other)                                                        :  98                 
+       GQ           OWNERSHP      OWNERSHPD        MORTGAGE        OWNCOST     
+ Min.   :1.000   Min.   :0.00   Min.   : 0.00   Min.   :0.000   Min.   :   17  
+ 1st Qu.:1.000   1st Qu.:1.00   1st Qu.:13.00   1st Qu.:0.000   1st Qu.: 2546  
+ Median :1.000   Median :2.00   Median :21.00   Median :0.000   Median :99999  
+ Mean   :1.015   Mean   :1.51   Mean   :17.47   Mean   :1.283   Mean   :52862  
+ 3rd Qu.:1.000   3rd Qu.:2.00   3rd Qu.:22.00   3rd Qu.:3.000   3rd Qu.:99999  
+ Max.   :4.000   Max.   :2.00   Max.   :22.00   Max.   :4.000   Max.   :99999  
+                                                                               
+      RENT         COSTELEC       COSTGAS        COSTWATR       COSTFUEL   
+ Min.   :   0   Min.   :   0   Min.   :   0   Min.   :   0   Min.   :   0  
+ 1st Qu.:   0   1st Qu.: 960   1st Qu.: 960   1st Qu.: 600   1st Qu.:9993  
+ Median :   0   Median :1680   Median :9992   Median :9993   Median :9993  
+ Mean   : 812   Mean   :2444   Mean   :5829   Mean   :6269   Mean   :9194  
+ 3rd Qu.:1500   3rd Qu.:2640   3rd Qu.:9993   3rd Qu.:9997   3rd Qu.:9993  
+ Max.   :3800   Max.   :9997   Max.   :9997   Max.   :9997   Max.   :9997  
+                                                                           
+    HHINCOME          FOODSTMP        LINGISOL        ROOMS           BUILTYR2     
+ Min.   :   3400   Min.   :1.000   Min.   :0.00   Min.   : 0.000   Min.   : 0.000  
+ 1st Qu.:  77000   1st Qu.:1.000   1st Qu.:1.00   1st Qu.: 4.000   1st Qu.: 1.000  
+ Median : 124825   Median :1.000   Median :1.00   Median : 5.000   Median : 3.000  
+ Mean   : 148646   Mean   :1.084   Mean   :1.04   Mean   : 5.239   Mean   : 4.051  
+ 3rd Qu.: 182000   3rd Qu.:1.000   3rd Qu.:1.00   3rd Qu.: 6.000   3rd Qu.: 5.000  
+ Max.   :1700200   Max.   :2.000   Max.   :2.00   Max.   :16.000   Max.   :21.000  
+ NA's   :4                                                                         
+    UNITSSTR         FUELHEAT          SSMC            FAMSIZE           NCHILD      
+ Min.   : 0.000   Min.   :0.000   Min.   :0.00000   Min.   : 1.000   Min.   :0.0000  
+ 1st Qu.: 3.000   1st Qu.:2.000   1st Qu.:0.00000   1st Qu.: 2.000   1st Qu.:0.0000  
+ Median : 6.000   Median :2.000   Median :0.00000   Median : 3.000   Median :0.0000  
+ Mean   : 6.046   Mean   :2.972   Mean   :0.01056   Mean   : 2.965   Mean   :0.8275  
+ 3rd Qu.: 9.000   3rd Qu.:4.000   3rd Qu.:0.00000   3rd Qu.: 4.000   3rd Qu.:2.0000  
+ Max.   :10.000   Max.   :9.000   Max.   :2.00000   Max.   :12.000   Max.   :5.0000  
+                                                                                     
+     NCHLT5          RELATE          RELATED           MARST            RACE      
+ Min.   :0.000   Min.   : 1.000   Min.   : 101.0   Min.   :1.000   Min.   :1.000  
+ 1st Qu.:0.000   1st Qu.: 1.000   1st Qu.: 101.0   1st Qu.:1.000   1st Qu.:1.000  
+ Median :0.000   Median : 1.000   Median : 101.0   Median :4.000   Median :1.000  
+ Mean   :0.184   Mean   : 2.658   Mean   : 269.2   Mean   :3.437   Mean   :3.243  
+ 3rd Qu.:0.000   3rd Qu.: 2.000   3rd Qu.: 201.0   3rd Qu.:6.000   3rd Qu.:7.000  
+ Max.   :3.000   Max.   :12.000   Max.   :1270.0   Max.   :6.000   Max.   :9.000  
+                                                                                  
+     RACED         HISPAN        HISPAND                   BPL     
+ Min.   :100   Min.   :1.00   Min.   :100.0   New York       :544  
+ 1st Qu.:100   1st Qu.:2.00   1st Qu.:200.0   SOUTH AMERICA  :151  
+ Median :100   Median :4.00   Median :416.0   West Indies    :148  
+ Mean   :326   Mean   :3.07   Mean   :330.4   Puerto Rico    : 58  
+ 3rd Qu.:700   3rd Qu.:4.00   3rd Qu.:450.0   Central America: 41  
+ Max.   :990   Max.   :4.00   Max.   :498.0   Mexico         : 36  
+                                              (Other)        :158  
+                 BPLD             ANCESTR1                            ANCESTR1D  
+ New York          :544   Puerto Rican:236   Puerto Rican                  :236  
+ Dominican Republic:145   Dominican   :205   Dominican                     :205  
+ Puerto Rico       : 58   Not Reported:100   Not Reported                  :100  
+ Colombia          : 49   Mexican     : 69   Mexican (1990-2000, ACS, PRCS): 68  
+ Mexico            : 36   Colombian   : 62   Colombian                     : 62  
+ Ecuador           : 36   Hispanic    : 49   Hispanic                      : 49  
+ (Other)           :268   (Other)     :415   (Other)                       :416  
+         ANCESTR2                            ANCESTR2D      CITIZEN          YRSUSA1    
+ Not Reported:831   Not Reported                  :831   Min.   :0.0000   Min.   : 0.0  
+ Puerto Rican: 39   Puerto Rican                  : 39   1st Qu.:0.0000   1st Qu.: 0.0  
+ Italian     : 24   Italian (1990-2000, ACS, PRCS): 24   Median :0.0000   Median : 0.0  
+ Irish       : 21   Irish                         : 20   Mean   :0.7905   Mean   : 8.5  
+ Dominican   : 19   Dominican                     : 19   3rd Qu.:2.0000   3rd Qu.:17.0  
+ Colombian   : 16   Colombian                     : 16   Max.   :3.0000   Max.   :53.0  
+ (Other)     :186   (Other)                       :187                                  
+    HCOVANY         HCOVPRIV         SEX          EMPSTAT         EMPSTATD        LABFORCE
+ Min.   :1.000   Min.   :1.000   Male  :   0   Min.   :1.000   Min.   :10.00   Min.   :2  
+ 1st Qu.:2.000   1st Qu.:2.000   Female:1136   1st Qu.:1.000   1st Qu.:10.00   1st Qu.:2  
+ Median :2.000   Median :2.000                 Median :1.000   Median :10.00   Median :2  
+ Mean   :1.959   Mean   :1.906                 Mean   :1.002   Mean   :10.07   Mean   :2  
+ 3rd Qu.:2.000   3rd Qu.:2.000                 3rd Qu.:1.000   3rd Qu.:10.00   3rd Qu.:2  
+ Max.   :2.000   Max.   :2.000                 Max.   :2.000   Max.   :20.00   Max.   :2  
+                                                                                          
+      OCC           IND         CLASSWKR       CLASSWKRD        WKSWORK2    
+ 2310   :109   7860   :191   Min.   :1.000   Min.   :13.00   Min.   :5.000  
+ 5700   : 51   8190   :134   1st Qu.:2.000   1st Qu.:22.00   1st Qu.:6.000  
+ 2010   : 48   8370   : 50   Median :2.000   Median :22.00   Median :6.000  
+ 3255   : 46   7870   : 49   Mean   :1.961   Mean   :23.33   Mean   :5.985  
+ 800    : 36   9470   : 31   3rd Qu.:2.000   3rd Qu.:25.00   3rd Qu.:6.000  
+ 430    : 30   7270   : 26   Max.   :2.000   Max.   :29.00   Max.   :6.000  
+ (Other):816   (Other):655                                                  
+    UHRSWORK         INCTOT          FTOTINC           INCWAGE          POVERTY   
+ Min.   :35.00   Min.   :  4800   Min.   :  -1400   Min.   :     0   Min.   : 37  
+ 1st Qu.:40.00   1st Qu.: 43000   1st Qu.:  62000   1st Qu.: 41900   1st Qu.:379  
+ Median :40.00   Median : 60050   Median : 102650   Median : 60000   Median :501  
+ Mean   :42.57   Mean   : 71879   Mean   : 132417   Mean   : 69660   Mean   :427  
+ 3rd Qu.:45.00   3rd Qu.: 88000   3rd Qu.: 165025   3rd Qu.: 85000   3rd Qu.:501  
+ Max.   :80.00   Max.   :639300   Max.   :1700200   Max.   :638000   Max.   :501  
+                                  NA's   :4                                       
+    MIGRATE1       MIGRATE1D        MIGPLAC1         MIGCOUNTY1         MIGPUMA1     
+ Min.   :1.000   Min.   :10.00   Min.   :  0.000   Min.   :  0.000   Min.   :   0.0  
+ 1st Qu.:1.000   1st Qu.:10.00   1st Qu.:  0.000   1st Qu.:  0.000   1st Qu.:   0.0  
+ Median :1.000   Median :10.00   Median :  0.000   Median :  0.000   Median :   0.0  
+ Mean   :1.138   Mean   :11.71   Mean   :  5.549   Mean   :  4.928   Mean   : 358.8  
+ 3rd Qu.:1.000   3rd Qu.:10.00   3rd Qu.:  0.000   3rd Qu.:  0.000   3rd Qu.:   0.0  
+ Max.   :4.000   Max.   :40.00   Max.   :453.000   Max.   :123.000   Max.   :8690.0  
+                                                                                     
+    VETSTAT         VETSTATD        PWPUMA00        TRANWORK        TRANTIME     
+ Min.   :1.000   Min.   :11.00   Min.   :    0   Min.   : 0.00   Min.   :  0.00  
+ 1st Qu.:1.000   1st Qu.:11.00   1st Qu.: 3200   1st Qu.:10.00   1st Qu.: 20.00  
+ Median :1.000   Median :11.00   Median : 3800   Median :31.00   Median : 31.00  
+ Mean   :1.008   Mean   :11.08   Mean   : 3350   Mean   :23.05   Mean   : 38.24  
+ 3rd Qu.:1.000   3rd Qu.:11.00   3rd Qu.: 3800   3rd Qu.:33.00   3rd Qu.: 51.25  
+ Max.   :2.000   Max.   :20.00   Max.   :11600   Max.   :70.00   Max.   :138.00  
+                                                                                 
+    DEPARTS           in_NYC          in_Bronx       in_Manhattan      in_StatenI     
+ Min.   :   0.0   Min.   :0.0000   Min.   :0.0000   Min.   :0.0000   Min.   :0.00000  
+ 1st Qu.: 652.0   1st Qu.:0.0000   1st Qu.:0.0000   1st Qu.:0.0000   1st Qu.:0.00000  
+ Median : 732.0   Median :1.0000   Median :0.0000   Median :0.0000   Median :0.00000  
+ Mean   : 762.4   Mean   :0.6276   Mean   :0.1558   Mean   :0.1303   Mean   :0.02025  
+ 3rd Qu.: 822.0   3rd Qu.:1.0000   3rd Qu.:0.0000   3rd Qu.:0.0000   3rd Qu.:0.00000  
+ Max.   :2345.0   Max.   :1.0000   Max.   :1.0000   Max.   :1.0000   Max.   :1.00000  
+                                                                                      
+  in_Brooklyn       in_Queens      in_Westchester      in_Nassau          Hispanic
+ Min.   :0.0000   Min.   :0.0000   Min.   :0.00000   Min.   :0.00000   Min.   :1  
+ 1st Qu.:0.0000   1st Qu.:0.0000   1st Qu.:0.00000   1st Qu.:0.00000   1st Qu.:1  
+ Median :0.0000   Median :0.0000   Median :0.00000   Median :0.00000   Median :1  
+ Mean   :0.1461   Mean   :0.1752   Mean   :0.07394   Mean   :0.07746   Mean   :1  
+ 3rd Qu.:0.0000   3rd Qu.:0.0000   3rd Qu.:0.00000   3rd Qu.:0.00000   3rd Qu.:1  
+ Max.   :1.0000   Max.   :1.0000   Max.   :1.00000   Max.   :1.00000   Max.   :1  
+                                                                                  
+    Hisp_Mex          Hisp_PR         Hisp_Cuban        Hisp_DomR          white       
+ Min.   :0.00000   Min.   :0.0000   Min.   :0.00000   Min.   :0.0000   Min.   :0.0000  
+ 1st Qu.:0.00000   1st Qu.:0.0000   1st Qu.:0.00000   1st Qu.:0.0000   1st Qu.:0.0000  
+ Median :0.00000   Median :0.0000   Median :0.00000   Median :0.0000   Median :1.0000  
+ Mean   :0.09155   Mean   :0.3099   Mean   :0.03521   Mean   :0.2157   Mean   :0.5511  
+ 3rd Qu.:0.00000   3rd Qu.:1.0000   3rd Qu.:0.00000   3rd Qu.:0.0000   3rd Qu.:1.0000  
+ Max.   :1.00000   Max.   :1.0000   Max.   :1.00000   Max.   :1.0000   Max.   :1.0000  
+                                                                                       
+      AfAm            Amindian            Asian            race_oth       unmarried     
+ Min.   :0.00000   Min.   :0.000000   Min.   :0.00000   Min.   :0.000   Min.   :0.0000  
+ 1st Qu.:0.00000   1st Qu.:0.000000   1st Qu.:0.00000   1st Qu.:0.000   1st Qu.:0.0000  
+ Median :0.00000   Median :0.000000   Median :0.00000   Median :0.000   Median :0.0000  
+ Mean   :0.09419   Mean   :0.007042   Mean   :0.01144   Mean   :0.346   Mean   :0.4032  
+ 3rd Qu.:0.00000   3rd Qu.:0.000000   3rd Qu.:0.00000   3rd Qu.:1.000   3rd Qu.:1.0000  
+ Max.   :1.00000   Max.   :1.000000   Max.   :1.00000   Max.   :1.000   Max.   :1.0000  
+                                                                                        
+    veteran         has_AnyHealthIns has_PvtHealthIns  Commute_car      Commute_bus     
+ Min.   :0.000000   Min.   :0.0000   Min.   :0.0000   Min.   :0.0000   Min.   :0.00000  
+ 1st Qu.:0.000000   1st Qu.:1.0000   1st Qu.:1.0000   1st Qu.:0.0000   1st Qu.:0.00000  
+ Median :0.000000   Median :1.0000   Median :1.0000   Median :0.0000   Median :0.00000  
+ Mean   :0.007923   Mean   :0.9586   Mean   :0.9058   Mean   :0.4727   Mean   :0.05634  
+ 3rd Qu.:0.000000   3rd Qu.:1.0000   3rd Qu.:1.0000   3rd Qu.:1.0000   3rd Qu.:0.00000  
+ Max.   :1.000000   Max.   :1.0000   Max.   :1.0000   Max.   :1.0000   Max.   :1.00000  
+                                                                                        
+ Commute_subway    Commute_rail     Commute_other     below_povertyline below_150poverty 
+ Min.   :0.0000   Min.   :0.00000   Min.   :0.00000   Min.   :0.00000   Min.   :0.00000  
+ 1st Qu.:0.0000   1st Qu.:0.00000   1st Qu.:0.00000   1st Qu.:0.00000   1st Qu.:0.00000  
+ Median :0.0000   Median :0.00000   Median :0.00000   Median :0.00000   Median :0.00000  
+ Mean   :0.3231   Mean   :0.03785   Mean   :0.08539   Mean   :0.01408   Mean   :0.03521  
+ 3rd Qu.:1.0000   3rd Qu.:0.00000   3rd Qu.:0.00000   3rd Qu.:0.00000   3rd Qu.:0.00000  
+ Max.   :1.0000   Max.   :1.00000   Max.   :1.00000   Max.   :1.00000   Max.   :1.00000  
+                                                                                         
+ below_200poverty   foodstamps     
+ Min.   :0.0000   Min.   :0.00000  
+ 1st Qu.:0.0000   1st Qu.:0.00000  
+ Median :0.0000   Median :0.00000  
+ Mean   :0.0757   Mean   :0.08363  
+ 3rd Qu.:0.0000   3rd Qu.:0.00000  
+ Max.   :1.0000   Max.   :1.00000  
+                                   
+> model_temp <- lm(INCWAGE ~ educ_hs )
+> summary(model_temp)
+
+Call:
+lm(formula = INCWAGE ~ educ_hs)
+
+Residuals:
+   Min     1Q Median     3Q    Max 
+-69660 -27760  -9660  15340 568340 
+
+Coefficients: (1 not defined because of singularities)
+            Estimate Std. Error t value Pr(>|t|)    
+(Intercept)    69660       1599   43.55   <2e-16 ***
+educ_hs           NA         NA      NA       NA    
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+Residual standard error: 53910 on 1135 degrees of freedom
+
+> # We cannot use educ_hs because we are using a subset of educ_college, thus excluding those that have just
+> # a high school education because they do not have a bachelors. We can see this reviewing the summary of the
+> # subset, in the educ-hs, there are only values
+> # of 0. In other words, the subset excludes those that do not have a bachelors. Logically, people that
+> #  so they will come up as NA in the regression because the subset has already excluded them.
+> model_temp6 <- lm(INCWAGE ~ educ_college + educ_advdeg + has_PvtHealthIns)
+> summary(model_temp6)
+
+Call:
+lm(formula = INCWAGE ~ educ_college + educ_advdeg + has_PvtHealthIns)
+
+Residuals:
+   Min     1Q Median     3Q    Max 
+-85908 -25908  -9404  14092 552092 
+
+Coefficients: (1 not defined because of singularities)
+                 Estimate Std. Error t value Pr(>|t|)    
+(Intercept)         55699       5761   9.668  < 2e-16 ***
+educ_college       -21504       3224  -6.670 4.00e-11 ***
+educ_advdeg            NA         NA      NA       NA    
+has_PvtHealthIns    30209       5349   5.648 2.06e-08 ***
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+Residual standard error: 51890 on 1133 degrees of freedom
+Multiple R-squared:  0.07497,	Adjusted R-squared:  0.07334 
+F-statistic: 45.91 on 2 and 1133 DF,  p-value: < 2.2e-16
+
+> detach()
+> #The following regressions, we will be using a subset of Dominicans.
+> attach(acs2017_ny)
+> use_varb <-  (in_NYC == 1) & (AGE >= 20) & (AGE <= 70) & (LABFORCE == 2) & (WKSWORK2 > 4)  & (UHRSWORK >= 35) & (Hisp_DomR == 1) 
+> dat_use <- subset(acs2017_ny,use_varb) 
+> detach()  
+> attach(dat_use)
+> model_temp1 <- lm(INCWAGE ~ AGE + I(AGE^2) + educ_hs + educ_somecoll + educ_college + educ_advdeg)
+> summary(model_temp1)
+
+Call:
+lm(formula = INCWAGE ~ AGE + I(AGE^2) + educ_hs + educ_somecoll + 
+    educ_college + educ_advdeg)
+
+Residuals:
+   Min     1Q Median     3Q    Max 
+-80011 -17588  -5690   9082 601384 
+
+Coefficients:
+                Estimate Std. Error t value Pr(>|t|)    
+(Intercept)   -16686.409  14100.395  -1.183 0.236864    
+AGE             1989.997    681.885   2.918 0.003578 ** 
+I(AGE^2)         -22.124      7.954  -2.782 0.005487 ** 
+educ_hs        12845.321   3392.175   3.787 0.000159 ***
+educ_somecoll  16518.392   3627.452   4.554 5.76e-06 ***
+educ_college   28612.789   3927.725   7.285 5.53e-13 ***
+educ_advdeg    53324.336   5217.611  10.220  < 2e-16 ***
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+Residual standard error: 41770 on 1318 degrees of freedom
+Multiple R-squared:  0.09516,	Adjusted R-squared:  0.09104 
+F-statistic:  23.1 on 6 and 1318 DF,  p-value: < 2.2e-16
+
+> suppressMessages(require(AER))
+> NNobs <- length(INCWAGE)
+> set.seed(12345) 
+> graph_obs <- (runif(NNobs) < 0.5) 
+> dat_graph <-subset(dat_use,graph_obs)  
+> plot(INCWAGE ~ jitter(AGE, factor = 2), pch = 16, col = rgb(0.5, 0.5, 0.5, alpha = 0.2), ylim = c(0,300000), data = dat_graph)
+> to_be_predicted2 <- data.frame(AGE = 20:70, educ_hs = 1, educ_somecoll = 1, educ_college = 1, educ_advdeg = 1)
+> to_be_predicted2$yhat <- predict(model_temp1, newdata = to_be_predicted2)
+> lines(yhat ~ AGE, data = to_be_predicted2, col = "brown")
+> summary(to_be_predicted2$yhat)
+   Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
+ 125509  131378  135640  134571  138424  139364 
+> to_be_predicted2 <- data.frame(AGE = 20:70, educ_hs = 1, educ_somecoll = 1, educ_college = 0, educ_advdeg = 0)
+> to_be_predicted2$yhat <- predict(model_temp1, newdata = to_be_predicted2)
+> lines(yhat ~ AGE, data = to_be_predicted2, col = "purple")
+> summary(to_be_predicted2$yhat)
+   Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
+  43572   49440   53703   52634   56487   57427 
+> detach()
+> detach()
+> detach()
+> # Next we will try two more regressions with same subset, one with AGE^3 and another with AGE^3 and AGE^4.
+> model_temp2 <- lm(INCWAGE ~ AGE + I(AGE^2) + I(AGE^3) + educ_hs + educ_somecoll + educ_college + educ_advdeg)
+> summary(model_temp2)
+
+Call:
+lm(formula = INCWAGE ~ AGE + I(AGE^2) + I(AGE^3) + educ_hs + 
+    educ_somecoll + educ_college + educ_advdeg)
+
+Residuals:
+   Min     1Q Median     3Q    Max 
+-80780 -17474  -5143   9246 601346 
+
+Coefficients:
+                Estimate Std. Error t value Pr(>|t|)    
+(Intercept)   -7.862e+04  4.582e+04  -1.716 0.086441 .  
+AGE            6.792e+03  3.448e+03   1.970 0.049100 *  
+I(AGE^2)      -1.389e+02  8.259e+01  -1.682 0.092849 .  
+I(AGE^3)       8.973e-01  6.317e-01   1.420 0.155702    
+educ_hs        1.308e+04  3.395e+03   3.852 0.000123 ***
+educ_somecoll  1.681e+04  3.632e+03   4.629 4.04e-06 ***
+educ_college   2.853e+04  3.927e+03   7.265 6.37e-13 ***
+educ_advdeg    5.294e+04  5.223e+03  10.137  < 2e-16 ***
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+Residual standard error: 41760 on 1317 degrees of freedom
+Multiple R-squared:  0.09654,	Adjusted R-squared:  0.09174 
+F-statistic:  20.1 on 7 and 1317 DF,  p-value: < 2.2e-16
+
+> suppressMessages(require(AER))
+> NNobs <- length(INCWAGE)
+> set.seed(12345) 
+> graph_obs <- (runif(NNobs) < 0.5) 
+> dat_graph <-subset(dat_use,graph_obs)  
+> plot(INCWAGE ~ jitter(AGE, factor = 2), pch = 16, col = rgb(0.5, 0.5, 0.5, alpha = 0.2), ylim = c(0,300000), data = dat_graph)
+> to_be_predicted2 <- data.frame(AGE = 20:70, educ_hs = 1, educ_somecoll = 1, educ_college = 1, educ_advdeg = 1)
+> to_be_predicted2$yhat <- predict(model_temp2, newdata = to_be_predicted2)
+> lines(yhat ~ AGE, data = to_be_predicted2, col = "brown")
+> detach()
+> detach()
+> detach()
+> model_temp3 <- lm((INCWAGE ~ AGE + I(AGE^2) + I(AGE^3) + I(AGE^4) + educ_hs + educ_somecoll + educ_college + educ_advdeg ) )
+> summary(model_temp3)
+
+Call:
+lm(formula = (INCWAGE ~ AGE + I(AGE^2) + I(AGE^3) + I(AGE^4) + 
+    educ_hs + educ_somecoll + educ_college + educ_advdeg))
+
+Residuals:
+   Min     1Q Median     3Q    Max 
+-80189 -17566  -5245   9303 600802 
+
+Coefficients:
+                Estimate Std. Error t value Pr(>|t|)    
+(Intercept)   -1.725e+05  1.444e+05  -1.195 0.232468    
+AGE            1.667e+04  1.481e+04   1.125 0.260612    
+I(AGE^2)      -5.093e+02  5.465e+02  -0.932 0.351544    
+I(AGE^3)       6.801e+00  8.633e+00   0.788 0.430966    
+I(AGE^4)      -3.388e-02  4.940e-02  -0.686 0.493038    
+educ_hs        1.297e+04  3.399e+03   3.817 0.000141 ***
+educ_somecoll  1.666e+04  3.639e+03   4.578 5.13e-06 ***
+educ_college   2.833e+04  3.938e+03   7.196 1.04e-12 ***
+educ_advdeg    5.263e+04  5.243e+03  10.039  < 2e-16 ***
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+Residual standard error: 41770 on 1316 degrees of freedom
+Multiple R-squared:  0.09686,	Adjusted R-squared:  0.09137 
+F-statistic: 17.64 on 8 and 1316 DF,  p-value: < 2.2e-16
+
+> suppressMessages(require(AER))
+> NNobs <- length(INCWAGE)
+> set.seed(12345) 
+> graph_obs <- (runif(NNobs) < 0.5) 
+> dat_graph <-subset(dat_use,graph_obs)  
+> plot(INCWAGE ~ jitter(AGE, factor = 2), pch = 16, col = rgb(0.5, 0.5, 0.5, alpha = 0.2), ylim = c(0,300000), data = dat_graph)
+> to_be_predicted2 <- data.frame(AGE = 20:70, educ_hs = 1, educ_somecoll = 1, educ_college = 1, educ_advdeg = 1)
+> to_be_predicted2$yhat <- predict(model_temp3, newdata = to_be_predicted2)
+> lines(yhat ~ AGE, data = to_be_predicted2, col = "brown")
+> detach()
+> detach()
+> detach()
+> model_temp4 <- lm(INCWAGE ~ I(log(AGE)) + I(log(AGE^2)) + I(log(AGE^3)) )
+> summary(model_temp4)
+
+Call:
+lm(formula = INCWAGE ~ I(log(AGE)) + I(log(AGE^2)) + I(log(AGE^3)))
+
+Residuals:
+   Min     1Q Median     3Q    Max 
+-41924 -21544  -8661  10587 596923 
+
+Coefficients: (2 not defined because of singularities)
+              Estimate Std. Error t value Pr(>|t|)   
+(Intercept)    44526.0    14361.2   3.100  0.00197 **
+I(log(AGE))     -868.6     3896.5  -0.223  0.82363   
+I(log(AGE^2))       NA         NA      NA       NA   
+I(log(AGE^3))       NA         NA      NA       NA   
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+Residual standard error: 43830 on 1323 degrees of freedom
+Multiple R-squared:  3.756e-05,	Adjusted R-squared:  -0.0007183 
+F-statistic: 0.0497 on 1 and 1323 DF,  p-value: 0.8236
+
+> model_temp7 <- lm(INCWAGE ~ AGE + educ_hs+ I(educ_hs^2) + educ_somecoll + educ_college + educ_advdeg)
+> summary(model_temp7)
+
+Call:
+lm(formula = INCWAGE ~ AGE + educ_hs + I(educ_hs^2) + educ_somecoll + 
+    educ_college + educ_advdeg)
+
+Residuals:
+   Min     1Q Median     3Q    Max 
+-77917 -17682  -5319   9592 600317 
+
+Coefficients: (1 not defined because of singularities)
+              Estimate Std. Error t value Pr(>|t|)    
+(Intercept)   19668.67    5304.33   3.708 0.000218 ***
+AGE             112.54      97.11   1.159 0.246694    
+educ_hs       13062.78    3399.92   3.842 0.000128 ***
+I(educ_hs^2)        NA         NA      NA       NA    
+educ_somecoll 16340.27    3636.14   4.494 7.61e-06 ***
+educ_college  28810.71    3937.10   7.318 4.37e-13 ***
+educ_advdeg   54272.13    5219.75  10.397  < 2e-16 ***
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+Residual standard error: 41880 on 1319 degrees of freedom
+Multiple R-squared:  0.08985,	Adjusted R-squared:  0.0864 
+F-statistic: 26.04 on 5 and 1319 DF,  p-value: < 2.2e-16
+
+> regression <- lm(INCWAGE ~ AGE + I(AGE^2) + educ_hs + educ_somecoll + educ_college + educ_advdeg)
+> summary(regression)
+
+Call:
+lm(formula = INCWAGE ~ AGE + I(AGE^2) + educ_hs + educ_somecoll + 
+    educ_college + educ_advdeg)
+
+Residuals:
+   Min     1Q Median     3Q    Max 
+-80011 -17588  -5690   9082 601384 
+
+Coefficients:
+                Estimate Std. Error t value Pr(>|t|)    
+(Intercept)   -16686.409  14100.395  -1.183 0.236864    
+AGE             1989.997    681.885   2.918 0.003578 ** 
+I(AGE^2)         -22.124      7.954  -2.782 0.005487 ** 
+educ_hs        12845.321   3392.175   3.787 0.000159 ***
+educ_somecoll  16518.392   3627.452   4.554 5.76e-06 ***
+educ_college   28612.789   3927.725   7.285 5.53e-13 ***
+educ_advdeg    53324.336   5217.611  10.220  < 2e-16 ***
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+Residual standard error: 41770 on 1318 degrees of freedom
+Multiple R-squared:  0.09516,	Adjusted R-squared:  0.09104 
+F-statistic:  23.1 on 6 and 1318 DF,  p-value: < 2.2e-16
+
+> suppressMessages(require(AER))
+> NNobs <- length(INCWAGE)
+> set.seed(12345) 
+> graph_obs <- (runif(NNobs) < 0.5) 
+> dat_graph <-subset(dat_use,graph_obs)  
+> plot(INCWAGE ~ jitter(AGE, factor = 2), pch = 16, col = rgb(0.5, 0.5, 0.5, alpha = 0.2), ylim = c(0,300000), data = dat_graph)
+> to_be_predicted2 <- data.frame(AGE = 20:70, educ_hs = 1, educ_somecoll = 1, educ_college = 1, educ_advdeg = 1)
+> to_be_predicted2$yhat <- predict(regression, newdata = to_be_predicted2)
+> lines(yhat ~ AGE, data = to_be_predicted2, col = "brown")
+> summary(to_be_predicted2$yhat)
+   Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
+ 125509  131378  135640  134571  138424  139364 
+> # The predicted wages for this model are:
+> #  Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
+> # 125509  131378  135640  134571  138424  139364 
+> # In this case, the predicated wage seems reasonable because, although the subset is made of a minority group,
+> # we are including people that are college educated with a bachelors or a masters, thus the
+> # income wages is much higher.
+> to_be_predicted2 <- data.frame(AGE = 20:70, educ_hs = 0, educ_somecoll = 0, educ_college = 0, educ_advdeg = 0)
+> to_be_predicted2$yhat <- predict(regression, newdata = to_be_predicted2)
+> lines(yhat ~ AGE, data = to_be_predicted2, col = "purple")
+> summary(to_be_predicted2$yhat)
+   Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
+  14208   20077   24339   23270   27124   28063 
+> exp(to_be_predicted2)
+            AGE educ_hs educ_somecoll educ_college educ_advdeg yhat
+1  4.851652e+08       1             1            1           1  Inf
+2  1.318816e+09       1             1            1           1  Inf
+3  3.584913e+09       1             1            1           1  Inf
+4  9.744803e+09       1             1            1           1  Inf
+5  2.648912e+10       1             1            1           1  Inf
+6  7.200490e+10       1             1            1           1  Inf
+7  1.957296e+11       1             1            1           1  Inf
+8  5.320482e+11       1             1            1           1  Inf
+9  1.446257e+12       1             1            1           1  Inf
+10 3.931334e+12       1             1            1           1  Inf
+11 1.068647e+13       1             1            1           1  Inf
+12 2.904885e+13       1             1            1           1  Inf
+13 7.896296e+13       1             1            1           1  Inf
+14 2.146436e+14       1             1            1           1  Inf
+15 5.834617e+14       1             1            1           1  Inf
+16 1.586013e+15       1             1            1           1  Inf
+17 4.311232e+15       1             1            1           1  Inf
+18 1.171914e+16       1             1            1           1  Inf
+19 3.185593e+16       1             1            1           1  Inf
+20 8.659340e+16       1             1            1           1  Inf
+21 2.353853e+17       1             1            1           1  Inf
+22 6.398435e+17       1             1            1           1  Inf
+23 1.739275e+18       1             1            1           1  Inf
+24 4.727839e+18       1             1            1           1  Inf
+25 1.285160e+19       1             1            1           1  Inf
+26 3.493427e+19       1             1            1           1  Inf
+27 9.496119e+19       1             1            1           1  Inf
+28 2.581313e+20       1             1            1           1  Inf
+29 7.016736e+20       1             1            1           1  Inf
+30 1.907347e+21       1             1            1           1  Inf
+31 5.184706e+21       1             1            1           1  Inf
+32 1.409349e+22       1             1            1           1  Inf
+33 3.831008e+22       1             1            1           1  Inf
+34 1.041376e+23       1             1            1           1  Inf
+35 2.830753e+23       1             1            1           1  Inf
+36 7.694785e+23       1             1            1           1  Inf
+37 2.091659e+24       1             1            1           1  Inf
+38 5.685720e+24       1             1            1           1  Inf
+39 1.545539e+25       1             1            1           1  Inf
+40 4.201210e+25       1             1            1           1  Inf
+41 1.142007e+26       1             1            1           1  Inf
+42 3.104298e+26       1             1            1           1  Inf
+43 8.438357e+26       1             1            1           1  Inf
+44 2.293783e+27       1             1            1           1  Inf
+45 6.235149e+27       1             1            1           1  Inf
+46 1.694889e+28       1             1            1           1  Inf
+47 4.607187e+28       1             1            1           1  Inf
+48 1.252363e+29       1             1            1           1  Inf
+49 3.404276e+29       1             1            1           1  Inf
+50 9.253782e+29       1             1            1           1  Inf
+51 2.515439e+30       1             1            1           1  Inf
+> regression2 <- lm(log1p(INCWAGE) ~ AGE + I(AGE^2) + educ_hs + educ_somecoll + educ_college + educ_advdeg)
+> summary(regression2)
+
+Call:
+lm(formula = log1p(INCWAGE) ~ AGE + I(AGE^2) + educ_hs + educ_somecoll + 
+    educ_college + educ_advdeg)
+
+Residuals:
+     Min       1Q   Median       3Q      Max 
+-10.3079   0.0128   0.4738   0.9562   3.8755 
+
+Coefficients:
+                Estimate Std. Error t value Pr(>|t|)    
+(Intercept)    8.2048424  0.8090543  10.141  < 2e-16 ***
+AGE            0.0816144  0.0391253   2.086  0.03717 *  
+I(AGE^2)      -0.0011246  0.0004564  -2.464  0.01386 *  
+educ_hs        0.1190171  0.1946366   0.611  0.54099    
+educ_somecoll  0.5916651  0.2081364   2.843  0.00454 ** 
+educ_college   0.6305287  0.2253655   2.798  0.00522 ** 
+educ_advdeg    1.5134986  0.2993768   5.055  4.9e-07 ***
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+Residual standard error: 2.397 on 1318 degrees of freedom
+Multiple R-squared:  0.04051,	Adjusted R-squared:  0.03614 
+F-statistic: 9.275 on 6 and 1318 DF,  p-value: 5.609e-10
+
+> suppressMessages(require(AER))
+> NNobs <- length(log1p(INCWAGE))
+> set.seed(12345) 
+> graph_obs <- (runif(NNobs) < 0.5) 
+> dat_graph <-subset(dat_use,graph_obs)  
+> plot(INCWAGE ~ jitter(AGE, factor = 2), pch = 16, col = rgb(0.5, 0.5, 0.5, alpha = 0.2), ylim = c(0,30), data = dat_graph)
+> to_be_predicted2 <- data.frame(AGE = 20:70, educ_hs = 1, educ_somecoll = 1, educ_college = 1, educ_advdeg = 1)
+> to_be_predicted2$yhat <- predict(regression2, newdata = to_be_predicted2)
+> lines(yhat ~ AGE, data = to_be_predicted2, col = "brown")
+> summary(to_be_predicted2$yhat)
+   Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
+  11.26   12.03   12.36   12.21   12.49   12.54 
+> exp(to_be_predicted2)
+            AGE  educ_hs educ_somecoll educ_college educ_advdeg      yhat
+1  4.851652e+08 2.718282      2.718282     2.718282    2.718282 207319.82
+2  1.318816e+09 2.718282      2.718282     2.718282    2.718282 214813.51
+3  3.584913e+09 2.718282      2.718282     2.718282    2.718282 222078.04
+4  9.744803e+09 2.718282      2.718282     2.718282    2.718282 229072.44
+5  2.648912e+10 2.718282      2.718282     2.718282    2.718282 235756.29
+6  7.200490e+10 2.718282      2.718282     2.718282    2.718282 242090.07
+7  1.957296e+11 2.718282      2.718282     2.718282    2.718282 248035.52
+8  5.320482e+11 2.718282      2.718282     2.718282    2.718282 253556.07
+9  1.446257e+12 2.718282      2.718282     2.718282    2.718282 258617.18
+10 3.931334e+12 2.718282      2.718282     2.718282    2.718282 263186.71
+11 1.068647e+13 2.718282      2.718282     2.718282    2.718282 267235.26
+12 2.904885e+13 2.718282      2.718282     2.718282    2.718282 270736.48
+13 7.896296e+13 2.718282      2.718282     2.718282    2.718282 273667.38
+14 2.146436e+14 2.718282      2.718282     2.718282    2.718282 276008.54
+15 5.834617e+14 2.718282      2.718282     2.718282    2.718282 277744.34
+16 1.586013e+15 2.718282      2.718282     2.718282    2.718282 278863.16
+17 4.311232e+15 2.718282      2.718282     2.718282    2.718282 279357.47
+18 1.171914e+16 2.718282      2.718282     2.718282    2.718282 279223.95
+19 3.185593e+16 2.718282      2.718282     2.718282    2.718282 278463.50
+20 8.659340e+16 2.718282      2.718282     2.718282    2.718282 277081.22
+21 2.353853e+17 2.718282      2.718282     2.718282    2.718282 275086.42
+22 6.398435e+17 2.718282      2.718282     2.718282    2.718282 272492.42
+23 1.739275e+18 2.718282      2.718282     2.718282    2.718282 269316.47
+24 4.727839e+18 2.718282      2.718282     2.718282    2.718282 265579.56
+25 1.285160e+19 2.718282      2.718282     2.718282    2.718282 261306.13
+26 3.493427e+19 2.718282      2.718282     2.718282    2.718282 256523.86
+27 9.496119e+19 2.718282      2.718282     2.718282    2.718282 251263.36
+28 2.581313e+20 2.718282      2.718282     2.718282    2.718282 245557.83
+29 7.016736e+20 2.718282      2.718282     2.718282    2.718282 239442.72
+30 1.907347e+21 2.718282      2.718282     2.718282    2.718282 232955.36
+31 5.184706e+21 2.718282      2.718282     2.718282    2.718282 226134.59
+32 1.409349e+22 2.718282      2.718282     2.718282    2.718282 219020.38
+33 3.831008e+22 2.718282      2.718282     2.718282    2.718282 211653.41
+34 1.041376e+23 2.718282      2.718282     2.718282    2.718282 204074.73
+35 2.830753e+23 2.718282      2.718282     2.718282    2.718282 196325.37
+36 7.694785e+23 2.718282      2.718282     2.718282    2.718282 188445.97
+37 2.091659e+24 2.718282      2.718282     2.718282    2.718282 180476.43
+38 5.685720e+24 2.718282      2.718282     2.718282    2.718282 172455.62
+39 1.545539e+25 2.718282      2.718282     2.718282    2.718282 164421.06
+40 4.201210e+25 2.718282      2.718282     2.718282    2.718282 156408.65
+41 1.142007e+26 2.718282      2.718282     2.718282    2.718282 148452.43
+42 3.104298e+26 2.718282      2.718282     2.718282    2.718282 140584.38
+43 8.438357e+26 2.718282      2.718282     2.718282    2.718282 132834.25
+44 2.293783e+27 2.718282      2.718282     2.718282    2.718282 125229.39
+45 6.235149e+27 2.718282      2.718282     2.718282    2.718282 117794.69
+46 1.694889e+28 2.718282      2.718282     2.718282    2.718282 110552.45
+47 4.607187e+28 2.718282      2.718282     2.718282    2.718282 103522.39
+48 1.252363e+29 2.718282      2.718282     2.718282    2.718282  96721.58
+49 3.404276e+29 2.718282      2.718282     2.718282    2.718282  90164.53
+50 9.253782e+29 2.718282      2.718282     2.718282    2.718282  83863.17
+51 2.515439e+30 2.718282      2.718282     2.718282    2.718282  77826.96
+> regression4 <-  lm(INCWAGE ~ AGE + I(AGE^2) + female + I(female*AGE) + I(female*(AGE^2)) + has_PvtHealthIns )
+> summary(regression4)
+
+Call:
+lm(formula = INCWAGE ~ AGE + I(AGE^2) + female + I(female * AGE) + 
+    I(female * (AGE^2)) + has_PvtHealthIns)
+
+Residuals:
+   Min     1Q Median     3Q    Max 
+-55444 -17666  -6067   8139 608428 
+
+Coefficients:
+                      Estimate Std. Error t value Pr(>|t|)    
+(Intercept)         -13011.006  19875.821  -0.655   0.5128    
+AGE                   2104.513    988.241   2.130   0.0334 *  
+I(AGE^2)               -23.918     11.533  -2.074   0.0383 *  
+female               -5729.460  27719.714  -0.207   0.8363    
+I(female * AGE)        417.721   1376.323   0.304   0.7616    
+I(female * (AGE^2))     -8.451     16.060  -0.526   0.5988    
+has_PvtHealthIns     22161.069   2405.109   9.214   <2e-16 ***
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+Residual standard error: 42290 on 1318 degrees of freedom
+Multiple R-squared:  0.07289,	Adjusted R-squared:  0.06867 
+F-statistic: 17.27 on 6 and 1318 DF,  p-value: < 2.2e-16
+
+> anova(model_temp1,regression4)
+Analysis of Variance Table
+
+Model 1: INCWAGE ~ AGE + I(AGE^2) + educ_hs + educ_somecoll + educ_college + 
+    educ_advdeg
+Model 2: INCWAGE ~ AGE + I(AGE^2) + female + I(female * AGE) + I(female * 
+    (AGE^2)) + has_PvtHealthIns
+  Res.Df        RSS Df  Sum of Sq F Pr(>F)
+1   1318 2.3001e+12                       
+2   1318 2.3567e+12  0 -5.659e+10         
+> suppressMessages(require(AER))
+> NNobs <- length(INCWAGE)
+> set.seed(12345) 
+> graph_obs <- (runif(NNobs) < 0.5) 
+> dat_graph <-subset(dat_use,graph_obs)  
+> plot(INCWAGE ~ jitter(AGE, factor = 2), pch = 16, col = rgb(0.5, 0.5, 0.5, alpha = 0.2), ylim = c(0,40000), data = dat_graph)
+> to_be_predicted2 <- data.frame(AGE = 20:70, female = 0, has_PvtHealthIns = 0)
+> to_be_predicted2$yhat <- predict(regression4, newdata = to_be_predicted2)
+> lines(yhat ~ AGE, data = to_be_predicted2, col = "brown")
+> summary(to_be_predicted2$yhat)
+   Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
+  17108   24649   29244   28077   32267   33283 
+> to_be_predicted2 <- data.frame(AGE = 20:70, female = 1, has_PvtHealthIns = 0)
+> to_be_predicted2$yhat <- predict(regression4, newdata = to_be_predicted2)
+> lines(yhat ~ AGE, data = to_be_predicted2, col = "purple")
+> summary(to_be_predicted2$yhat)
+   Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
+ -790.6 18708.8 24956.4 22200.3 29019.5 30393.9 
+> regression <- lm(INCWAGE ~ AGE + I(AGE^2) + educ_hs + educ_somecoll + educ_college + educ_advdeg)
+> summary(regression)
+
+Call:
+lm(formula = INCWAGE ~ AGE + I(AGE^2) + educ_hs + educ_somecoll + 
+    educ_college + educ_advdeg)
+
+Residuals:
+   Min     1Q Median     3Q    Max 
+-80011 -17588  -5690   9082 601384 
+
+Coefficients:
+                Estimate Std. Error t value Pr(>|t|)    
+(Intercept)   -16686.409  14100.395  -1.183 0.236864    
+AGE             1989.997    681.885   2.918 0.003578 ** 
+I(AGE^2)         -22.124      7.954  -2.782 0.005487 ** 
+educ_hs        12845.321   3392.175   3.787 0.000159 ***
+educ_somecoll  16518.392   3627.452   4.554 5.76e-06 ***
+educ_college   28612.789   3927.725   7.285 5.53e-13 ***
+educ_advdeg    53324.336   5217.611  10.220  < 2e-16 ***
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+Residual standard error: 41770 on 1318 degrees of freedom
+Multiple R-squared:  0.09516,	Adjusted R-squared:  0.09104 
+F-statistic:  23.1 on 6 and 1318 DF,  p-value: < 2.2e-16
+
+> suppressMessages(require(AER))
+> NNobs <- length(INCWAGE)
+> set.seed(12345) 
+> graph_obs <- (runif(NNobs) < 0.5) 
+> dat_graph <-subset(dat_use,graph_obs)  
+> plot(INCWAGE ~ jitter(AGE, factor = 2), pch = 16, col = rgb(0.5, 0.5, 0.5, alpha = 0.2), ylim = c(0,300000), data = dat_graph)
+> to_be_predicted2 <- data.frame(AGE = 20:70, educ_hs = 1, educ_somecoll = 1, educ_college = 1, educ_advdeg = 1)
+> to_be_predicted2$yhat <- predict(regression, newdata = to_be_predicted2)
+> lines(yhat ~ AGE, data = to_be_predicted2, col = "brown")
+> summary(to_be_predicted2$yhat)
+   Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
+ 125509  131378  135640  134571  138424  139364 
+> print(to_be_predicted2)
+   AGE educ_hs educ_somecoll educ_college educ_advdeg     yhat
+1   20       1             1            1           1 125565.0
+2   21       1             1            1           1 126647.9
+3   22       1             1            1           1 127686.6
+4   23       1             1            1           1 128681.0
+5   24       1             1            1           1 129631.2
+6   25       1             1            1           1 130537.1
+7   26       1             1            1           1 131398.8
+8   27       1             1            1           1 132216.3
+9   28       1             1            1           1 132989.5
+10  29       1             1            1           1 133718.5
+11  30       1             1            1           1 134403.2
+12  31       1             1            1           1 135043.6
+13  32       1             1            1           1 135639.8
+14  33       1             1            1           1 136191.8
+15  34       1             1            1           1 136699.5
+16  35       1             1            1           1 137163.0
+17  36       1             1            1           1 137582.2
+18  37       1             1            1           1 137957.2
+19  38       1             1            1           1 138287.9
+20  39       1             1            1           1 138574.4
+21  40       1             1            1           1 138816.7
+22  41       1             1            1           1 139014.7
+23  42       1             1            1           1 139168.4
+24  43       1             1            1           1 139277.9
+25  44       1             1            1           1 139343.2
+26  45       1             1            1           1 139364.2
+27  46       1             1            1           1 139340.9
+28  47       1             1            1           1 139273.4
+29  48       1             1            1           1 139161.7
+30  49       1             1            1           1 139005.7
+31  50       1             1            1           1 138805.5
+32  51       1             1            1           1 138561.0
+33  52       1             1            1           1 138272.3
+34  53       1             1            1           1 137939.3
+35  54       1             1            1           1 137562.1
+36  55       1             1            1           1 137140.6
+37  56       1             1            1           1 136674.9
+38  57       1             1            1           1 136164.9
+39  58       1             1            1           1 135610.7
+40  59       1             1            1           1 135012.3
+41  60       1             1            1           1 134369.6
+42  61       1             1            1           1 133682.6
+43  62       1             1            1           1 132951.4
+44  63       1             1            1           1 132176.0
+45  64       1             1            1           1 131356.3
+46  65       1             1            1           1 130492.3
+47  66       1             1            1           1 129584.2
+48  67       1             1            1           1 128631.7
+49  68       1             1            1           1 127635.0
+50  69       1             1            1           1 126594.1
+51  70       1             1            1           1 125508.9
+> to_be_predicted2 <- data.frame(AGE = 20:70, educ_hs = 1, educ_somecoll = 1, educ_college = 0, educ_advdeg = 0)
+> to_be_predicted2$yhat <- predict(regression, newdata = to_be_predicted2)
+> lines(yhat ~ AGE, data = to_be_predicted2, col = "purple")
+> summary(to_be_predicted2$yhat)
+   Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
+  43572   49440   53703   52634   56487   57427 
+> print(to_be_predicted2)
+   AGE educ_hs educ_somecoll educ_college educ_advdeg     yhat
+1   20       1             1            0           0 43627.83
+2   21       1             1            0           0 44710.77
+3   22       1             1            0           0 45749.45
+4   23       1             1            0           0 46743.89
+5   24       1             1            0           0 47694.08
+6   25       1             1            0           0 48600.02
+7   26       1             1            0           0 49461.72
+8   27       1             1            0           0 50279.17
+9   28       1             1            0           0 51052.38
+10  29       1             1            0           0 51781.33
+11  30       1             1            0           0 52466.04
+12  31       1             1            0           0 53106.50
+13  32       1             1            0           0 53702.72
+14  33       1             1            0           0 54254.69
+15  34       1             1            0           0 54762.41
+16  35       1             1            0           0 55225.88
+17  36       1             1            0           0 55645.11
+18  37       1             1            0           0 56020.09
+19  38       1             1            0           0 56350.82
+20  39       1             1            0           0 56637.30
+21  40       1             1            0           0 56879.54
+22  41       1             1            0           0 57077.53
+23  42       1             1            0           0 57231.28
+24  43       1             1            0           0 57340.78
+25  44       1             1            0           0 57406.03
+26  45       1             1            0           0 57427.03
+27  46       1             1            0           0 57403.79
+28  47       1             1            0           0 57336.30
+29  48       1             1            0           0 57224.56
+30  49       1             1            0           0 57068.57
+31  50       1             1            0           0 56868.34
+32  51       1             1            0           0 56623.86
+33  52       1             1            0           0 56335.14
+34  53       1             1            0           0 56002.16
+35  54       1             1            0           0 55624.94
+36  55       1             1            0           0 55203.48
+37  56       1             1            0           0 54737.76
+38  57       1             1            0           0 54227.80
+39  58       1             1            0           0 53673.59
+40  59       1             1            0           0 53075.14
+41  60       1             1            0           0 52432.43
+42  61       1             1            0           0 51745.49
+43  62       1             1            0           0 51014.29
+44  63       1             1            0           0 50238.85
+45  64       1             1            0           0 49419.15
+46  65       1             1            0           0 48555.22
+47  66       1             1            0           0 47647.03
+48  67       1             1            0           0 46694.60
+49  68       1             1            0           0 45697.92
+50  69       1             1            0           0 44657.00
+51  70       1             1            0           0 43571.82
+> #This particular bit of code was something we found from the rstudio community to graph the peak predicted wages.
+> Poly_Model <- lm(INCWAGE ~ poly(AGE,3, raw=TRUE))
+> summary(Poly_Model)
+
+Call:
+lm(formula = INCWAGE ~ poly(AGE, 3, raw = TRUE))
+
+Residuals:
+   Min     1Q Median     3Q    Max 
+-47178 -20938  -8166  11813 599152 
+
+Coefficients:
+                            Estimate Std. Error t value Pr(>|t|)   
+(Intercept)               -9.509e+04  4.722e+04  -2.014  0.04424 * 
+poly(AGE, 3, raw = TRUE)1  9.583e+03  3.570e+03   2.684  0.00736 **
+poly(AGE, 3, raw = TRUE)2 -2.058e+02  8.556e+01  -2.406  0.01628 * 
+poly(AGE, 3, raw = TRUE)3  1.372e+00  6.549e-01   2.095  0.03639 * 
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+Residual standard error: 43600 on 1321 degrees of freedom
+Multiple R-squared:  0.01197,	Adjusted R-squared:  0.009726 
+F-statistic: 5.335 on 3 and 1321 DF,  p-value: 0.001181
+
+> plot(AGE, INCWAGE, col="green", ylim=c(0, 200000))
+> # Add model
+> AGE <- seq(min(AGE), max(AGE), length=1000)
+> pred <- data.frame(AGE, INCWAGE = predict(Poly_Model, newdata = data.frame(AGE)))
+> with(pred, lines(AGE, INCWAGE))
+> # Vector of model coefficients
+> cf <- coef(Poly_Model)
+> # First derivative of my poly_model
+> # This is the "raw" equation but we'll find its roots to get the locations of local maxima and minima.
+> D1 <- cf[2] + 2*cf[3]*pred$AGE + 3*cf[4]*pred$AGE^2
+> # Roots of first derivative (these are locations where first derivative (d WAGE/ d AGE) = 0).
+> # Use quadratic formula to find roots (I honestly copied and pasted this formula, but I understand what it's doing)
+> D1roots <- (-2*cf[3] + c(-1,1)*sqrt((2*cf[3])^2 - 4*3*cf[4]*cf[2]))/(2*3*cf[4])
+> # Second derivative at the two roots. 
+> D2atD1roots <-  2*cf[3] + 6*cf[4]*D1roots
+> # Local maxima are where the second derivative is negative
+> max_x <- D1roots[which(D2atD1roots < 0)]
+> max_y <- cf %*% max_x^(0:3)
+> # Plot local maxima
+> points(max_x, max_y, pch=16, col="red")
+> # Add values of Yield at local maxima
+> text(max_x, max_y, label = round(max_y,2), adj=c(0.5,-1))
+
+
+
+
+
